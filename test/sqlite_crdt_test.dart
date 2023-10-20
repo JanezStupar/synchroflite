@@ -1,4 +1,4 @@
-import 'package:sqlite_crdt/sqlite_crdt.dart';
+import 'package:sqlite_crdt/sqflite_crdt.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -6,7 +6,7 @@ void main() {
     late SqlCrdt crdt;
 
     setUp(() async {
-      crdt = await SqliteCrdt.openInMemory(
+      crdt = await SqfliteCrdt.openInMemory(
         version: 1,
         onCreate: (db, version) async {
           await db.execute('''
@@ -140,7 +140,7 @@ void main() {
     late SqlCrdt crdt;
 
     setUp(() async {
-      crdt = await SqliteCrdt.openInMemory(
+      crdt = await SqfliteCrdt.openInMemory(
         version: 1,
         onCreate: (db, version) async {
           await db.execute('''

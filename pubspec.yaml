@@ -14,8 +14,18 @@ dependencies:
   sqflite_common_ffi_web: ^0.4.0
   sql_crdt: ^2.1.3
   json_annotation: ^4.8.1
+  sqlparser: ^0.31.3
+  source_span: ^1.10.0
+  collection: ^1.17.2
 
 dev_dependencies:
   lints: any
   test: any
   json_serializable: ^6.2.0
+
+#dependency_overrides:
+#  sql_crdt:
+#    path: '../sql_crdt'
+#    git:
+#      url: https://github.com/JanezStupar/sql_crdt.git
+#      ref: merge_crdt

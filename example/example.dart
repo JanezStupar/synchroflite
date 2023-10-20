@@ -1,8 +1,8 @@
-import 'package:sqlite_crdt/sqlite_crdt.dart';
+import 'package:sqlite_crdt/sqflite_crdt.dart';
 
 Future<void> main() async {
   // Create or load the database
-  final crdt = await SqliteCrdt.openInMemory(
+  final crdt = await SqfliteCrdt.openInMemory(
     version: 1,
     onCreate: (db, version) async {
       // Create a table
