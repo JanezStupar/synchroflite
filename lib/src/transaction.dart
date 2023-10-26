@@ -1,4 +1,4 @@
-part of 'package:sqlite_crdt/sqflite_crdt.dart';
+part of 'package:synchroflite/synchroflite.dart';
 
 class TransactionSqfliteCrdt extends TransactionCrdt with SqfliteCrdtImplMixin {
   final SqfliteApi _txn;

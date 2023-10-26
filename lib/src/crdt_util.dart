@@ -118,7 +118,6 @@ class CrdtUtil {
       where: statement.where,
     );
 
-    // args = [...args ?? [], 1, hlc, hlc.nodeId, hlc];
     return newStatement;
   }
 

@@ -1,5 +1,5 @@
 
-part of 'package:sqlite_crdt/sqflite_crdt.dart';
+part of 'package:synchroflite/synchroflite.dart';
 
 // Queries that don't need to be intercepted and transformed
 const specialQueries = <String> {

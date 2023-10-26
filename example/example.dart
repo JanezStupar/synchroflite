@@ -1,4 +1,4 @@
-import 'package:sqlite_crdt/sqflite_crdt.dart';
+import 'package:synchroflite/synchroflite.dart';
 
 Future<void> main() async {
   // Create or load the database

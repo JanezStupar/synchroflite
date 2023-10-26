@@ -1,4 +1,4 @@
-library sqflite_crdt;
+library synchroflite;
 
 import 'dart:async';
 
@@ -6,9 +6,10 @@ import 'dart:async';
 import 'package:sqflite_common/src/open_options.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
-import 'package:sqlite_crdt/sqflite_crdt.dart';
-import 'package:sqlite_crdt/src/crdt_util.dart';
-import 'package:sqlite_crdt/src/sqlite_api.dart';
+import 'package:synchroflite/src/crdt_util.dart';
+import 'package:synchroflite/src/sqlite_api.dart';
+import 'package:synchroflite/src/sqflite_api.dart';
+import 'package:sql_crdt/sql_crdt.dart';
 import 'package:sqlparser/sqlparser.dart';
 import 'package:sqlparser/utils/node_to_text.dart';
 
@@ -16,12 +17,12 @@ import 'src/is_web_locator.dart';
 
 export 'package:sqflite_common/sqlite_api.dart';
 export 'package:sql_crdt/sql_crdt.dart';
-export 'package:sqlite_crdt/src/sqflite_api.dart';
+export 'package:synchroflite/src/sqflite_api.dart';
 
 
 
-part 'package:sqlite_crdt/src/sqflite_crdt_impl.dart';
-part 'package:sqlite_crdt/src/transaction.dart';
+part 'package:synchroflite/src/sqflite_crdt_impl.dart';
+part 'package:synchroflite/src/transaction.dart';
 
 class SqfliteCrdt extends SqlCrdt with SqfliteCrdtImplMixin {
   final SqfliteApi _db;

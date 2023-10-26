@@ -1,5 +1,5 @@
 import 'package:sqflite_common/sqlite_api.dart';
-import 'package:sqlite_crdt/src/sqlite_api.dart';
+import 'package:synchroflite/src/sqlite_api.dart';
 
 class SqfliteApi extends SqliteApi {
   final DatabaseExecutor _db;

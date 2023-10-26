@@ -1,4 +1,8 @@
-Dart implementation of Conflict-free Replicated Data Types (CRDTs) using Sqlite.  
+Dart implementation of Conflict-free Replicated Data Types (CRDTs) providing Sqflite API.
+Based on work by [Daniel Cachapa](https://github.com/cachapa)
+
+The scope of this implementation is to provide an API to be used in [drift_crdt](https://github.com/JanezStupar/drift_crdt).
+
 This package implements [sql_crdt](https://github.com/cachapa/sql_crdt).
 
 ## Setup
@@ -16,7 +20,7 @@ This package uses [sqflite](https://pub.dev/packages/sqflite). There's a bit of 
 
 ### Android & iOS
 
-`sqlite_crdt` uses recent Sqlite features that may not be available in every system's embedded libraries.
+`synchroflite` uses recent Sqlite features that may not be available in every system's embedded libraries.
 
 To get around this, import the [sqlite3_flutter_libs](https://pub.dev/packages/sqlite3_flutter_libs) package into your project:
 
@@ -58,4 +62,4 @@ Check [example.dart](https://github.com/cachapa/sqlite_crdt/blob/master/example/
 
 ## Features and bugs
 
-Please file feature requests and bugs in the [issue tracker](https://github.com/cachapa/sqlite_crdt/issues).
+Please file feature requests and bugs in the [issue tracker](https://github.com/JanezStupar/synchroflite/issues).
