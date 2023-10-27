@@ -1,3 +1,7 @@
+// Copyright 2023 Janez Stupar
+// This code is based on Daniel Cachapa's work in sqlite_crdt:
+// https://github.com/cachapa/sqlite_crdt
+// SPDX-License-Identifier: Apache-2.0
 library synchroflite;
 
 import 'dart:async';
@@ -24,16 +28,16 @@ export 'package:synchroflite/src/sqflite_api.dart';
 part 'package:synchroflite/src/sqflite_crdt_impl.dart';
 part 'package:synchroflite/src/transaction.dart';
 
-class SqfliteCrdt extends SqlCrdt with SqfliteCrdtImplMixin {
+class Synchroflite extends SqlCrdt with SqfliteCrdtImplMixin {
   final SqfliteApi _db;
 
-  SqfliteCrdt(this._db): super(_db);
+  Synchroflite(this._db): super(_db);
 
   /// Open or create a SQLite container as a SqlCrdt instance.
   ///
   /// See the Sqflite documentation for more details on opening a database:
   /// https://github.com/tekartik/sqflite/blob/master/sqflite/doc/opening_db.md
-  static Future<SqfliteCrdt> open(
+  static Future<Synchroflite> open(
     String path, {
     bool singleInstance = true,
     int? version,
@@ -45,7 +49,7 @@ class SqfliteCrdt extends SqlCrdt with SqfliteCrdtImplMixin {
 
   /// Open a transient SQLite in memory.
   /// Useful for testing or temporary sessions.
-  static Future<SqfliteCrdt> openInMemory({
+  static Future<Synchroflite> openInMemory({
     bool singleInstance = false,
     int? version,
     FutureOr<void> Function(BaseCrdt crdt, int version)? onCreate,
@@ -54,7 +58,7 @@ class SqfliteCrdt extends SqlCrdt with SqfliteCrdtImplMixin {
   }) =>
       _open(null, true, singleInstance, version, onCreate, onUpgrade, migrate: migrate);
 
-  static Future<SqfliteCrdt> _open(
+  static Future<Synchroflite> _open(
     String? path,
     bool inMemory,
     bool singleInstance,
@@ -89,7 +93,7 @@ class SqfliteCrdt extends SqlCrdt with SqfliteCrdtImplMixin {
       ),
     );
 
-    final crdt = SqfliteCrdt(SqfliteApi(db));
+    final crdt = Synchroflite(SqfliteApi(db));
     try {
       await crdt.init();
     } on DatabaseException catch (e) {

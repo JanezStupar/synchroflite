@@ -1,4 +1,5 @@
-
+// Copyright 2023 Janez Stupar
+// SPDX-License-Identifier: Apache-2.0
 part of 'package:synchroflite/synchroflite.dart';
 
 // Queries that don't need to be intercepted and transformed
@@ -6,6 +7,7 @@ const specialQueries = <String> {
   'SELECT 1',
 };
 
+// This mixin is used to override the default implementation of rawQuery, rawUpdate, rawInsert, and rawDelete
 mixin class SqfliteCrdtImplMixin {
 
   Object? _convert(Object? value) => (value is Hlc) ? value.toString() : value;

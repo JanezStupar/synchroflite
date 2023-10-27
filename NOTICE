@@ -1,0 +1,9 @@
+Synchroflite
+Copyright 2023 and onwards Janez Stupar
+
+This project is based on software developed by Daniel Cachapa and licensed under APACHE 2.0 license.
+
+You can find original work here:
+https://github.com/cachapa/sql_crdt
+https://github.com/cachapa/sqlite_crdt
+

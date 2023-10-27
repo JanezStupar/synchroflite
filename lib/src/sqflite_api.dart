@@ -1,3 +1,5 @@
+// Copyright 2023 Janez Stupar
+// SPDX-License-Identifier: Apache-2.0
 import 'package:sqflite_common/sqlite_api.dart';
 import 'package:synchroflite/src/sqlite_api.dart';
 

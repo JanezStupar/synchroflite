@@ -1,3 +1,7 @@
+// Copyright 2023 Daniel Cachapa
+// This file is copied from sqlite_crdt package:
+// https://github.com/cachapa/sqlite_crdt
+// SPDX-License-Identifier: Apache-2.0
 import 'package:sqflite_common/sqlite_api.dart';
 import 'package:sql_crdt/sql_crdt.dart';
 

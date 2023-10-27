@@ -1,7 +1,13 @@
+// Copyright 2023 Janez Stupar
+// This code is based on Daniel Cachapa's work in sql_crdt:
+// https://github.com/cachapa/sql_crdt
+// SPDX-License-Identifier: Apache-2.0
+
 import 'package:source_span/source_span.dart';
 import 'package:collection/collection.dart';
 import 'package:sqlparser/sqlparser.dart';
 
+// This class contains utility functions for transforming SQL statements that has been extracted from `sql_crdt` package.
 class CrdtUtil {
   static final _sqlEngine = SqlEngine();
 

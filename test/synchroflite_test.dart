@@ -1,3 +1,8 @@
+// Copyright 2023 Daniel Cachapa
+// Copyright 2023 Janez Stupar
+// This file is copied from sqlite_crdt package:
+// https://github.com/cachapa/sqlite_crdt
+// SPDX-License-Identifier: Apache-2.0
 import 'package:synchroflite/synchroflite.dart';
 import 'package:test/test.dart';
 
@@ -6,7 +11,7 @@ void main() {
     late SqlCrdt crdt;
 
     setUp(() async {
-      crdt = await SqfliteCrdt.openInMemory(
+      crdt = await Synchroflite.openInMemory(
         version: 1,
         onCreate: (db, version) async {
           await db.execute('''
@@ -140,7 +145,7 @@ void main() {
     late SqlCrdt crdt;
 
     setUp(() async {
-      crdt = await SqfliteCrdt.openInMemory(
+      crdt = await Synchroflite.openInMemory(
         version: 1,
         onCreate: (db, version) async {
           await db.execute('''

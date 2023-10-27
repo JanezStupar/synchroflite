@@ -1,8 +1,12 @@
+// Copyright 2023 Janez Stupar
+// This code is based on Daniel Cachapa's work in sqlite_crdt:
+// https://github.com/cachapa/sqlite_crdt
+// SPDX-License-Identifier: Apache-2.0
 import 'package:synchroflite/synchroflite.dart';
 
 Future<void> main() async {
   // Create or load the database
-  final crdt = await SqfliteCrdt.openInMemory(
+  final crdt = await Synchroflite.openInMemory(
     version: 1,
     onCreate: (db, version) async {
       // Create a table

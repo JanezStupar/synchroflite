@@ -1,3 +1,7 @@
+// Copyright 2023 Janez Stupar
+// This code is based on Daniel Cachapa's work in sql_crdt:
+// https://github.com/cachapa/sql_crdt
+// SPDX-License-Identifier: Apache-2.0
 part of 'package:synchroflite/synchroflite.dart';
 
 class TransactionSqfliteCrdt extends TransactionCrdt with SqfliteCrdtImplMixin {
