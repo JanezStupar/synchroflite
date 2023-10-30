@@ -10,6 +10,7 @@ import 'dart:async';
 import 'package:sqflite_common/src/open_options.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
+import 'package:synchroflite/src/batch_api.dart';
 import 'package:synchroflite/src/crdt_util.dart';
 import 'package:synchroflite/src/sqlite_api.dart';
 import 'package:synchroflite/src/sqflite_api.dart';
@@ -27,6 +28,7 @@ export 'package:synchroflite/src/sqflite_api.dart';
 
 part 'package:synchroflite/src/sqflite_crdt_impl.dart';
 part 'package:synchroflite/src/transaction.dart';
+part 'package:synchroflite/src/batch.dart';
 
 class Synchroflite extends SqlCrdt with SqfliteCrdtImplMixin {
   final SqfliteApi _db;
@@ -85,11 +87,11 @@ class Synchroflite extends SqlCrdt with SqfliteCrdtImplMixin {
         version: version,
         onCreate: onCreate == null
             ? null
-            : (db, version) => onCreate.call(BaseCrdt(SqliteApi(db)), version),
+            : (db, version) => onCreate.call(BaseCrdt(SqfliteApi(db)), version),
         onUpgrade: onUpgrade == null
             ? null
             : (db, from, to) =>
-                onUpgrade.call(BaseCrdt(SqliteApi(db)), from, to),
+                onUpgrade.call(BaseCrdt(SqfliteApi(db)), from, to),
       ),
     );
 
@@ -135,7 +137,7 @@ class Synchroflite extends SqlCrdt with SqfliteCrdtImplMixin {
     await _db.close();
   }
 
-  Batch batch() => _innerBatch(_db);
+  Batch batch() => BatchCrdt((_db.batch()), canonicalTime.increment());
 
   @override
   Future<void> transaction(
@@ -153,19 +155,19 @@ class Synchroflite extends SqlCrdt with SqfliteCrdtImplMixin {
   }
 
   @override
-  Future<int> _rawInsert(SqfliteApi db, InsertStatement statement, List<Object?>? args, [Hlc? hlc]) async {
+  Future<R> _rawInsert<T, R>(T db, InsertStatement statement, List<Object?>? args, [Hlc? hlc]) async {
     await onDatasetChanged([statement.table.tableName], hlc!);
     return super._rawInsert(db, statement, args, hlc);
   }
 
   @override
-  Future<int> _rawUpdate(SqfliteApi db, UpdateStatement statement, List<Object?>? args, [Hlc? hlc]) async {
+  Future<R> _rawUpdate<T, R>(T db, UpdateStatement statement, List<Object?>? args, [Hlc? hlc]) async {
     await onDatasetChanged([statement.table.tableName], hlc!);
     return super._rawUpdate(db, statement, args, hlc);
   }
 
   @override
-  Future<int> _rawDelete(SqfliteApi db, DeleteStatement statement, List<Object?>? args, [Hlc? hlc]) async {
+  Future<R> _rawDelete<T, R>(T db, DeleteStatement statement, List<Object?>? args, [Hlc? hlc]) async {
     await onDatasetChanged([statement.table.tableName], hlc!);
     return super._rawDelete(db, statement, args, hlc);
   }

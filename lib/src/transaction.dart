@@ -10,7 +10,7 @@ class TransactionSqfliteCrdt extends TransactionCrdt with SqfliteCrdtImplMixin {
   TransactionSqfliteCrdt(this._txn, canonicalTime) : super(_txn, canonicalTime);
 
   @override
-  Future<int> _rawInsert(SqfliteApi db, InsertStatement statement,
+  Future<R> _rawInsert<T, R>(T db, InsertStatement statement,
       [List<Object?>? args, Hlc? hlc]) {
     hlc ??= canonicalTime.increment();
     affectedTables.add(statement.table.tableName);
@@ -18,7 +18,7 @@ class TransactionSqfliteCrdt extends TransactionCrdt with SqfliteCrdtImplMixin {
   }
 
   @override
-  Future<int> _rawUpdate(SqfliteApi db, UpdateStatement statement,
+  Future<R> _rawUpdate<T, R>(T db, UpdateStatement statement,
       [List<Object?>? args, Hlc? hlc]) {
     hlc ??= canonicalTime.increment();
     affectedTables.add(statement.table.tableName);
@@ -26,7 +26,7 @@ class TransactionSqfliteCrdt extends TransactionCrdt with SqfliteCrdtImplMixin {
   }
 
   @override
-  Future<int> _rawDelete(SqfliteApi db, DeleteStatement statement,
+  Future<R> _rawDelete<T, R>(T db, DeleteStatement statement,
       [List<Object?>? args, Hlc? hlc]) {
     hlc ??= canonicalTime.increment();
     affectedTables.add(statement.table.tableName);
@@ -50,5 +50,6 @@ class TransactionSqfliteCrdt extends TransactionCrdt with SqfliteCrdtImplMixin {
     return _innerRawDelete(_txn, sql, args);
   }
 
-  batch() => super._innerBatch(_txn);
+  Batch batch() =>
+      BatchCrdt((_txn.batch()), canonicalTime.increment());
 }

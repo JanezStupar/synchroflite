@@ -280,6 +280,101 @@ void main() {
       await streamTest;
     });
   });
+
+  group('Synchroflite', () {
+    late Synchroflite crdt;
+
+    setUp(() async {
+      crdt = await Synchroflite.openInMemory(
+        version: 1,
+        onCreate: (db, version) async {
+          await db.execute('''
+            CREATE TABLE users (
+              id INTEGER NOT NULL,
+              name TEXT,
+              PRIMARY KEY (id)
+            )
+          ''');
+        },
+      );
+    });
+
+    test('rawInsert', () async {
+      final id = await crdt.rawInsert('''
+        INSERT INTO users (id, name)
+        VALUES (?1, ?2)
+      ''', [1, 'John Doe']);
+      expect(id, 1);
+    });
+
+    test('rawUpdate', () async {
+      await crdt.rawInsert('''
+        INSERT INTO users (id, name)
+        VALUES (?1,  ?2)
+      ''', [1, 'John Doe']);
+      final rowsAffected = await crdt.rawUpdate('''
+        UPDATE users SET name = ?2
+        WHERE id = ?1
+      ''', [1, 'Jane Doe']);
+      expect(rowsAffected, 1);
+    });
+
+    test('rawDelete', () async {
+      await crdt.rawInsert('''
+        INSERT INTO users (id, name)
+        VALUES (?1, ?2)
+      ''', [1, 'John Doe']);
+      final rowsAffected = await crdt.rawDelete('''
+        DELETE FROM users WHERE id = ?1
+      ''', [1]);
+      expect(rowsAffected, 1);
+    });
+
+    test('update multiple', () async {
+      await crdt.rawInsert('''
+        INSERT INTO users (id, name)
+        VALUES (?1, ?2)
+      ''', [1, 'John Doe']);
+      await crdt.rawInsert('''
+        INSERT INTO users (id, name)
+        VALUES (?1, ?2)
+      ''', [2, 'Jane Doe']);
+      final rowsAffected = await crdt.rawUpdate('''
+        UPDATE users SET name = ?1
+      ''', ['Bobby Doe']);
+      expect(rowsAffected, 2);
+    });
+
+    test('batch commit', () async {
+      final batch = crdt.batch();
+      batch.rawInsert('''
+        INSERT INTO users (id, name)
+        VALUES (?1, ?2)
+      ''', [1, 'John Doe']);
+      batch.rawInsert('''
+        INSERT INTO users (id, name)
+        VALUES (?1, ?2)
+      ''', [2, 'Jane Doe']);
+      final result = await batch.commit();
+      expect(result.length, 2);
+    });
+
+    test('batch apply', () async {
+      final batch = crdt.batch();
+      batch.rawInsert('''
+        INSERT INTO users (id, name)
+        VALUES (?1, ?2)
+      ''', [1, 'John Doe']);
+      batch.rawInsert('''
+        INSERT INTO users (id, name)
+        VALUES (?1, ?2)
+      ''', [2, 'Jane Doe']);
+      final result = await batch.apply();
+      expect(result.length, 2);
+    });
+
+  //   TODO: test transaction vs sequence, make sure clocks are correct
+  });
 }
 
 Future<void> _insertUser(TimestampedCrdt crdt, int id, String name) =>
