@@ -63,3 +63,7 @@ Check [example.dart](https://github.com/cachapa/sqlite_crdt/blob/master/example/
 ## Features and bugs
 
 Please file feature requests and bugs in the [issue tracker](https://github.com/JanezStupar/synchroflite/issues).
+
+## NOTE:
+
+This package does not implement full Sqflite API. It only implements the API needed for `drift_crdt` to work. If you need more, please open an issue or a PR.

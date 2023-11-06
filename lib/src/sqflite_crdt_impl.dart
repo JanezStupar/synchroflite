@@ -58,7 +58,7 @@ mixin class SqfliteCrdtImplMixin {
 
   Future<R> queryFunc<T, R>(T db, SelectStatement statement,
       [List<Object?>? args]) {
-    SelectStatement newStatement = CrdtUtil.prepareSelect(statement, args);
+    var newStatement = CrdtUtil.prepareSelect(statement, args);
     if (db is SqfliteApi) {
       return rawQuery(db, newStatement.toSql(), args) as Future<R>;
     } else if (db is Batch) {
@@ -69,7 +69,7 @@ mixin class SqfliteCrdtImplMixin {
   }
 
   Future<R> _rawInsert<T, R>(T db, InsertStatement statement, List<Object?>? args, [Hlc? hlc]) async {
-    InsertStatement newStatement = CrdtUtil.prepareInsert(statement, args);
+    var newStatement = CrdtUtil.prepareInsert(statement, args);
     args = [...args ?? [], hlc, hlc?.nodeId, hlc];
     if (db is SqfliteApi) {
       return rawInsert(db, newStatement.toSql(), args) as FutureOr<R>;
@@ -81,7 +81,7 @@ mixin class SqfliteCrdtImplMixin {
   }
 
   Future<R> _rawUpdate<T,R>(T db, UpdateStatement statement, List<Object?>? args, [Hlc? hlc]) async {
-    UpdateStatement newStatement = CrdtUtil.prepareUpdate(statement, args);
+    var newStatement = CrdtUtil.prepareUpdate(statement, args);
     args = [...args ?? [], hlc, hlc?.nodeId, hlc];
     if (db is SqfliteApi) {
       return rawUpdate(db, newStatement.toSql(), args) as FutureOr<R>;
@@ -93,7 +93,7 @@ mixin class SqfliteCrdtImplMixin {
   }
 
   Future<R> _rawDelete<T, R>(T db, DeleteStatement statement, List<Object?>? args, [Hlc? hlc]) async {
-    UpdateStatement newStatement = CrdtUtil.prepareDelete(statement, args);
+    var newStatement = CrdtUtil.prepareDelete(statement, args);
     args = [...args ?? [], 1, hlc, hlc?.nodeId, hlc];
     if (db is SqfliteApi) {
       return rawUpdate(db, newStatement.toSql(), args) as FutureOr<R>;

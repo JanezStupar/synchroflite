@@ -14,13 +14,13 @@ class CrdtUtil {
   /// function takes a SQL statement and a list of arguments
   /// transforms the SQL statement to change parameters with automatic index
   /// into parameters with explicit index
-  static transformAutomaticExplicit(Statement statement) {
+  static void transformAutomaticExplicit(Statement statement) {
     statement.allDescendants.whereType<NumberedVariable>().forEachIndexed((i, ref) {
       ref.explicitIndex ??= i + 1;
     });
   }
 
-  static _listToBinaryExpression (List<Expression> expressions, Token token) {
+  static Expression _listToBinaryExpression (List<Expression> expressions, Token token) {
     if (expressions.length == 1) {
       return expressions.first;
     }
@@ -62,8 +62,8 @@ class CrdtUtil {
     var fakeSpan = SourceFile.fromString('fakeSpan').span(0);
     var andToken = Token(TokenType.and, fakeSpan);
     var equalToken = Token(TokenType.equal, fakeSpan);
+    var deletedExpr = <Expression>[];
 
-    List<Expression> deletedExpr = [];
     statement.from?.allDescendants.whereType<TableReference>().forEachIndexed((index, reference) {
       if (reference.as != null) {
         deletedExpr.add(BinaryExpression(
@@ -174,6 +174,40 @@ class CrdtUtil {
       }
     }
 
+    return newStatement;
+  }
+
+  static CreateTableStatement prepareCreate(CreateTableStatement statement) {
+    final newStatement = CreateTableStatement(
+      tableName: statement.tableName,
+      columns: [
+        ...statement.columns,
+        ColumnDefinition(
+          columnName: 'is_deleted',
+          typeName: 'INTEGER',
+          constraints: [Default(null, NumericLiteral(0))],
+        ),
+        ColumnDefinition(
+          columnName: 'hlc',
+          typeName: 'TEXT',
+          constraints: [NotNull(null)],
+        ),
+        ColumnDefinition(
+          columnName: 'node_id',
+          typeName: 'TEXT',
+          constraints: [NotNull(null)],
+        ),
+        ColumnDefinition(
+          columnName: 'modified',
+          typeName: 'TEXT',
+          constraints: [NotNull(null)],
+        ),
+      ],
+      tableConstraints: statement.tableConstraints,
+      ifNotExists: statement.ifNotExists,
+      isStrict: statement.isStrict,
+      withoutRowId: statement.withoutRowId,
+    );
     return newStatement;
   }
 

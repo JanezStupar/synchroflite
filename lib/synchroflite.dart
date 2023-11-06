@@ -12,7 +12,6 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
 import 'package:synchroflite/src/batch_api.dart';
 import 'package:synchroflite/src/crdt_util.dart';
-import 'package:synchroflite/src/sqlite_api.dart';
 import 'package:synchroflite/src/sqflite_api.dart';
 import 'package:sql_crdt/sql_crdt.dart';
 import 'package:sqlparser/sqlparser.dart';
@@ -137,7 +136,7 @@ class Synchroflite extends SqlCrdt with SqfliteCrdtImplMixin {
     await _db.close();
   }
 
-  Batch batch() => BatchCrdt((_db.batch()), canonicalTime.increment());
+  Batch batch() => BatchCrdt((_db.batch()), canonicalTime.increment(), onDatasetChanged);
 
   @override
   Future<void> transaction(

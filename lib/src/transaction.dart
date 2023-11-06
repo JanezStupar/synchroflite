@@ -51,5 +51,7 @@ class TransactionSqfliteCrdt extends TransactionCrdt with SqfliteCrdtImplMixin {
   }
 
   Batch batch() =>
-      BatchCrdt((_txn.batch()), canonicalTime.increment());
+      BatchCrdt(_txn.batch(), canonicalTime, (tables, hlc) async {
+        affectedTables.addAll(tables);
+      }, inTransaction: true);
 }

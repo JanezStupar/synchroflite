@@ -344,6 +344,25 @@ void main() {
       ''', ['Bobby Doe']);
       expect(rowsAffected, 2);
     });
+  });
+
+  group('Synchroflite batch', () {
+    late Synchroflite crdt;
+
+    setUp(() async {
+      crdt = await Synchroflite.openInMemory(
+        version: 1,
+        onCreate: (db, version) async {
+          await db.execute('''
+            CREATE TABLE users (
+              id INTEGER NOT NULL,
+              name TEXT,
+              PRIMARY KEY (id)
+            )
+          ''');
+        },
+      );
+    });
 
     test('batch commit', () async {
       final batch = crdt.batch();
@@ -373,7 +392,239 @@ void main() {
       expect(result.length, 2);
     });
 
-  //   TODO: test transaction vs sequence, make sure clocks are correct
+    test('batch insert, query, apply', () async {
+      final batch = crdt.batch();
+      batch.rawInsert('''
+        INSERT INTO users (id, name)
+        VALUES (?1, ?2)
+      ''', [1, 'John Doe']);
+      batch.rawInsert('''
+        INSERT INTO users (id, name)
+        VALUES (?1, ?2)
+      ''', [2, 'Jane Doe']);
+      batch.rawQuery('SELECT * FROM users');
+      expect(batch.length, 3);
+      final result = await batch.apply();
+      expect(result.length, 3);
+    });
+
+    test('batch insert, query, commit', () async {
+      final batch = crdt.batch();
+      batch.rawInsert('''
+        INSERT INTO users (id, name)
+        VALUES (?1, ?2)
+      ''', [1, 'John Doe']);
+      batch.rawInsert('''
+        INSERT INTO users (id, name)
+        VALUES (?1, ?2)
+      ''', [2, 'Jane Doe']);
+      batch.rawQuery('SELECT * FROM users');
+      expect(batch.length, 3);
+      final result = await batch.commit();
+      expect(result.length, 3);
+    });
+
+    // When batch.apply is called very operation should have its own timestamp
+    test('batch apply timestamps', () async {
+      final batch = crdt.batch();
+      batch.rawInsert('''
+        INSERT INTO users (id, name)
+        VALUES (?1, ?2)
+      ''', [1, 'John Doe']);
+      batch.rawInsert('''
+        INSERT INTO users (id, name)
+        VALUES (?1, ?2)
+      ''', [2, 'Jane Doe']);
+      await batch.apply();
+      final changeset = await crdt.getChangeset();
+      expect(changeset['users']!.first['hlc'],
+          isNot(equals(changeset['users']!.last['hlc'])));
+    });
+
+    // When batch.commit is called all operations should have the same timestamp
+    test('batch commit timestamps', () async {
+      final batch = crdt.batch();
+      batch.rawInsert('''
+        INSERT INTO users (id, name)
+        VALUES (?1, ?2)
+      ''', [1, 'John Doe']);
+      batch.rawInsert('''
+        INSERT INTO users (id, name)
+        VALUES (?1, ?2)
+      ''', [2, 'Jane Doe']);
+      await batch.commit();
+      final changeset = await crdt.getChangeset();
+      expect(changeset['users']!.first['hlc'],
+          equals(changeset['users']!.last['hlc']));
+    });
+
+    // when batch calls execute the timestamp should be correct
+    test('batch execute', () async {
+      final batch = crdt.batch();
+      batch.execute('''
+        INSERT INTO users (id, name)
+        VALUES (?1, ?2)
+      ''', [1, 'John Doe']);
+      await batch.apply();
+      final changeset = await crdt.getChangeset();
+      expect(changeset['users']!.first['hlc'], isNotNull);
+    });
+
+    // when batch calls execute the timestamp should be correct
+    test('batch execute multiple', () async {
+      final batch = crdt.batch();
+      batch.execute('''
+        INSERT INTO users (id, name)
+        VALUES (?1, ?2)
+      ''', [1, 'John Doe']);
+      batch.execute('SELECT 1');
+      batch.execute('''
+        INSERT INTO users (id, name)
+        VALUES (?1, ?2)
+      ''', [2, 'Jane Doe']);
+      batch.execute('''
+      UPDATE users SET name = ?2
+      WHERE id = ?1
+      ''', [1, 'Josepth Doe']);
+      batch.execute('''
+        SELECT * FROM users
+       ''');
+      final result = await batch.apply();
+      final changeset = await crdt.getChangeset();
+      expect(batch.length, equals(5));
+      expect(result.length, equals(5));
+      expect(changeset['users']!.length, equals(2));
+      expect(changeset['users']!.first['hlc'], isNotNull);
+    });
+
+    // test the batch within a transaction
+    test('batch transaction', () async {
+      await crdt.transaction((txn) async {
+        await _insertUser(txn, 1, 'John Doe');
+        await _insertUser(txn, 2, 'Jane Doe');
+
+        final batch = txn.batch();
+        batch.execute('''
+      UPDATE users SET name = ?2
+      WHERE id = ?1
+      ''', [1, 'Josepth Doe']);
+        batch.execute('''
+        SELECT * FROM users
+       ''');
+        final resultBatch = await batch.apply();
+        expect(batch.length, equals(2));
+        expect(resultBatch.length, equals(2));
+        expect(resultBatch, equals([1, null]));
+      });
+      final result = await crdt.query('SELECT * FROM users');
+      expect(result.length, equals(2));
+      expect(result.first['hlc'], equals(result.last['hlc']));
+      expect(result.first['name'], equals('Josepth Doe'));
+    });
+  });
+
+  group('batch watch', () {
+    late Synchroflite crdt;
+
+    setUp(() async {
+      crdt = await Synchroflite.openInMemory(
+        version: 1,
+        onCreate: (db, version) async {
+          await db.execute('''
+            CREATE TABLE users (
+              id INTEGER NOT NULL,
+              name TEXT,
+              PRIMARY KEY (id)
+              )
+              ''');
+          await db.execute('''
+            CREATE TABLE purchases (
+              id INTEGER NOT NULL,
+              user_id INTEGER NOT NULL,
+              price REAL NOT NULL,
+              PRIMARY KEY (id)
+            )
+          ''');
+        },
+      );
+    });
+
+    // test the onChange callback for batch commit
+    test('batch commit onChange', () async {
+      final stream = crdt.watch('SELECT * FROM users');
+      final streamTest = expectLater(
+          stream,
+          emitsInOrder([
+            [],
+            (List<Map<String, Object?>> e) =>
+                e.first['name'] == 'Joseph Doe' && e.last['name'] == 'Jane Doe',
+          ]));
+      final batch = crdt.batch();
+      batch.execute('''
+        INSERT INTO users (id, name)
+        VALUES (?1, ?2)
+      ''', [1, 'John Doe']);
+      batch.execute('SELECT 1');
+      batch.execute('''
+        INSERT INTO users (id, name)
+        VALUES (?1, ?2)
+      ''', [2, 'Jane Doe']);
+      batch.execute('''
+      UPDATE users SET name = ?2
+      WHERE id = ?1
+      ''', [1, 'Joseph Doe']);
+      batch.rawInsert('''
+        INSERT INTO purchases (id, user_id, price)
+        VALUES (?1, ?2, ?3)
+      ''', [1, 1, 12.3]);
+      batch.execute('''
+        SELECT * FROM users
+       ''');
+      await batch.commit();
+      final changeset = await crdt.getChangeset();
+      await streamTest;
+
+      expect(batch.length, equals(6));
+      expect(changeset['users']!.length, equals(2));
+      expect(changeset['purchases']!.length, equals(1));
+      expect(changeset['users']!.first['hlc'],
+          equals(changeset['purchases']!.last['hlc']));
+      expect(changeset['users']!.first['hlc'], isNotNull);
+    });
+
+    test('batch within transaction onChange', () async {
+      final stream = crdt.watch('SELECT * FROM users');
+      final streamTest = expectLater(
+          stream,
+          emitsInOrder([
+            [],
+            (List<Map<String, Object?>> e) =>
+                e.first['name'] == 'Josepth Doe' && e.last['name'] == 'Jane Doe',
+          ]));
+
+      await crdt.transaction((txn) async {
+        await _insertUser(txn, 1, 'John Doe');
+        await _insertUser(txn, 2, 'Jane Doe');
+
+        final batch = txn.batch();
+        batch.execute('''
+      UPDATE users SET name = ?2
+      WHERE id = ?1
+      ''', [1, 'Josepth Doe']);
+        batch.execute('''
+        SELECT * FROM users
+       ''');
+        final resultBatch = await batch.apply();
+        expect(batch.length, equals(2));
+        expect(resultBatch.length, equals(2));
+        expect(resultBatch, equals([1, null]));
+      });
+      final result = await crdt.query('SELECT * FROM users');
+      expect(result.length, equals(2));
+      expect(result.first['hlc'], equals(result.last['hlc']));
+      expect(result.first['name'], equals('Josepth Doe'));
+      await streamTest;
+    });
   });
 }
 
