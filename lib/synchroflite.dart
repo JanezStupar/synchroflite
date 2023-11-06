@@ -142,14 +142,14 @@ class Synchroflite extends SqlCrdt with SqfliteCrdtImplMixin {
   }
 
   Batch batch() =>
-      BatchCrdt((_db.batch()), canonicalTime.increment(), onDatasetChanged);
+      BatchSynchroflite((_db.batch()), canonicalTime.increment(), onDatasetChanged);
 
   @override
   Future<void> transaction(
-      Future<void> Function(TransactionSqfliteCrdt txn) action) async {
-    late final TransactionSqfliteCrdt transaction;
+      Future<void> Function(TransactionSynchroflite txn) action) async {
+    late final TransactionSynchroflite transaction;
     await _db.transaction((txn) async {
-      transaction = TransactionSqfliteCrdt(txn, canonicalTime.increment());
+      transaction = TransactionSynchroflite(txn, canonicalTime.increment());
       await action(transaction);
     });
     // Notify on changes

@@ -4,10 +4,10 @@
 // SPDX-License-Identifier: Apache-2.0
 part of 'package:synchroflite/synchroflite.dart';
 
-class TransactionSqfliteCrdt extends TransactionCrdt with SqfliteCrdtImplMixin {
+class TransactionSynchroflite extends TransactionCrdt with SqfliteCrdtImplMixin {
   final SqfliteApi _txn;
 
-  TransactionSqfliteCrdt(this._txn, canonicalTime) : super(_txn, canonicalTime);
+  TransactionSynchroflite(this._txn, canonicalTime) : super(_txn, canonicalTime);
 
   @override
   Future<R> _rawInsert<T, R>(T db, InsertStatement statement,
@@ -50,7 +50,7 @@ class TransactionSqfliteCrdt extends TransactionCrdt with SqfliteCrdtImplMixin {
     return _innerRawDelete(_txn, sql, args, canonicalTime);
   }
 
-  Batch batch() => BatchCrdt(_txn.batch(), canonicalTime, (tables, hlc) async {
+  Batch batch() => BatchSynchroflite(_txn.batch(), canonicalTime, (tables, hlc) async {
         affectedTables.addAll(tables);
       }, inTransaction: true);
 }

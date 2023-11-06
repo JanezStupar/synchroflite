@@ -5,7 +5,7 @@ typedef OnChangeFunction = Future<void> Function(
     Iterable<String> tables, Hlc hlc);
 
 // Override of Sqflite's Batch class to allow for injection of CRDT logic
-class BatchCrdt with SqfliteCrdtImplMixin implements BatchApi {
+class BatchSynchroflite with SqfliteCrdtImplMixin implements BatchApi {
   final Batch _db;
   final bool inTransaction;
   int _length = 0;
@@ -22,7 +22,7 @@ class BatchCrdt with SqfliteCrdtImplMixin implements BatchApi {
 
   final affectedTables = <String>{};
 
-  BatchCrdt(this._db, this.canonicalTime, this.onDatasetChanged,
+  BatchSynchroflite(this._db, this.canonicalTime, this.onDatasetChanged,
       {this.inTransaction = false});
 
   void _enqueue(Function statement) {
