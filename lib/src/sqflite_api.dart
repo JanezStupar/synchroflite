@@ -6,7 +6,7 @@ import 'package:synchroflite/src/sqlite_api.dart';
 class SqfliteApi extends SqliteApi {
   final DatabaseExecutor _db;
 
-  SqfliteApi(this._db): super(_db);
+  SqfliteApi(this._db) : super(_db);
 
   Batch batch() => _db.batch();
 
@@ -32,8 +32,7 @@ class SqfliteApi extends SqliteApi {
   }
 
   @override
-  Future<void> transaction(
-      Future<void> Function(SqfliteApi txn) action) async {
+  Future<void> transaction(Future<void> Function(SqfliteApi txn) action) async {
     assert(_db is Database, 'Cannot start a transaction within a transaction');
     return (_db as Database).transaction((t) => action(SqfliteApi(t)));
   }

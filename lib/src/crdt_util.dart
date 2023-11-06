@@ -15,19 +15,24 @@ class CrdtUtil {
   /// transforms the SQL statement to change parameters with automatic index
   /// into parameters with explicit index
   static void transformAutomaticExplicit(Statement statement) {
-    statement.allDescendants.whereType<NumberedVariable>().forEachIndexed((i, ref) {
+    statement.allDescendants
+        .whereType<NumberedVariable>()
+        .forEachIndexed((i, ref) {
       ref.explicitIndex ??= i + 1;
     });
   }
 
-  static Expression _listToBinaryExpression (List<Expression> expressions, Token token) {
+  static Expression _listToBinaryExpression(
+      List<Expression> expressions, Token token) {
     if (expressions.length == 1) {
       return expressions.first;
     }
-    return BinaryExpression(expressions.first, token, _listToBinaryExpression(expressions.sublist(1), token));
+    return BinaryExpression(expressions.first, token,
+        _listToBinaryExpression(expressions.sublist(1), token));
   }
 
-  static UpdateStatement prepareUpdate(UpdateStatement statement, List<Object?>? args) {
+  static UpdateStatement prepareUpdate(
+      UpdateStatement statement, List<Object?>? args) {
     final argCount = args?.length ?? 0;
     transformAutomaticExplicit(statement);
     final newStatement = UpdateStatement(
@@ -57,38 +62,38 @@ class CrdtUtil {
     return newStatement;
   }
 
-  static SelectStatement prepareSelect(SelectStatement statement, List<Object?>? args) {
+  static SelectStatement prepareSelect(
+      SelectStatement statement, List<Object?>? args) {
     transformAutomaticExplicit(statement);
     var fakeSpan = SourceFile.fromString('fakeSpan').span(0);
     var andToken = Token(TokenType.and, fakeSpan);
     var equalToken = Token(TokenType.equal, fakeSpan);
     var deletedExpr = <Expression>[];
 
-    statement.from?.allDescendants.whereType<TableReference>().forEachIndexed((index, reference) {
+    statement.from?.allDescendants
+        .whereType<TableReference>()
+        .forEachIndexed((index, reference) {
       if (reference.as != null) {
         deletedExpr.add(BinaryExpression(
-            Reference(columnName: 'is_deleted', entityName: reference.as, schemaName: reference.schemaName),
+            Reference(
+                columnName: 'is_deleted',
+                entityName: reference.as,
+                schemaName: reference.schemaName),
             equalToken,
-            NumericLiteral(0)
-        ));
+            NumericLiteral(0)));
         print(reference.tableName);
       }
     });
     if (deletedExpr.isEmpty) {
       deletedExpr.add(BinaryExpression(
-          Reference(columnName: 'is_deleted'),
-          equalToken,
-          NumericLiteral(0)
-      ));
+          Reference(columnName: 'is_deleted'), equalToken, NumericLiteral(0)));
     }
-
 
     if (statement.where != null) {
       statement.where = BinaryExpression(
           statement.where!,
           Token(TokenType.and, fakeSpan),
-          _listToBinaryExpression(deletedExpr, andToken)
-      );
+          _listToBinaryExpression(deletedExpr, andToken));
     } else {
       statement.where = _listToBinaryExpression(deletedExpr, andToken);
     }
@@ -96,7 +101,8 @@ class CrdtUtil {
     return statement;
   }
 
-  static UpdateStatement prepareDelete(DeleteStatement statement, List<Object?>? args) {
+  static UpdateStatement prepareDelete(
+      DeleteStatement statement, List<Object?>? args) {
     final argCount = args?.length ?? 0;
     transformAutomaticExplicit(statement);
     final newStatement = UpdateStatement(
@@ -127,8 +133,8 @@ class CrdtUtil {
     return newStatement;
   }
 
-
-  static InsertStatement prepareInsert(InsertStatement statement, List<Object?>? args) {
+  static InsertStatement prepareInsert(
+      InsertStatement statement, List<Object?>? args) {
     final argCount = args?.length ?? 0;
     transformAutomaticExplicit(statement);
     final newStatement = InsertStatement(

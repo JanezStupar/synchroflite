@@ -50,8 +50,7 @@ class TransactionSqfliteCrdt extends TransactionCrdt with SqfliteCrdtImplMixin {
     return _innerRawDelete(_txn, sql, args, canonicalTime);
   }
 
-  Batch batch() =>
-      BatchCrdt(_txn.batch(), canonicalTime, (tables, hlc) async {
+  Batch batch() => BatchCrdt(_txn.batch(), canonicalTime, (tables, hlc) async {
         affectedTables.addAll(tables);
       }, inTransaction: true);
 }

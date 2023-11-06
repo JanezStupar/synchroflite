@@ -599,7 +599,8 @@ void main() {
           emitsInOrder([
             [],
             (List<Map<String, Object?>> e) =>
-                e.first['name'] == 'Josepth Doe' && e.last['name'] == 'Jane Doe',
+                e.first['name'] == 'Josepth Doe' &&
+                e.last['name'] == 'Jane Doe',
           ]));
 
       await crdt.transaction((txn) async {

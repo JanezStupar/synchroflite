@@ -1,7 +1,8 @@
 part of 'package:synchroflite/synchroflite.dart';
 
 typedef WithHlc = void Function(Hlc hlc);
-typedef OnChangeFunction = Future<void> Function(Iterable<String> tables, Hlc hlc);
+typedef OnChangeFunction = Future<void> Function(
+    Iterable<String> tables, Hlc hlc);
 
 // Override of Sqflite's Batch class to allow for injection of CRDT logic
 class BatchCrdt with SqfliteCrdtImplMixin implements BatchApi {
@@ -21,7 +22,8 @@ class BatchCrdt with SqfliteCrdtImplMixin implements BatchApi {
 
   final affectedTables = <String>{};
 
-  BatchCrdt(this._db, this.canonicalTime, this.onDatasetChanged, {this.inTransaction=false});
+  BatchCrdt(this._db, this.canonicalTime, this.onDatasetChanged,
+      {this.inTransaction = false});
 
   void _enqueue(Function statement) {
     _statementQueue.add(statement);
@@ -50,7 +52,6 @@ class BatchCrdt with SqfliteCrdtImplMixin implements BatchApi {
     hlc ??= canonicalTime;
     return super._rawDelete(db, statement, args, hlc);
   }
-
 
   @override
   void rawQuery(String sql, [List<Object?>? args]) {
@@ -113,7 +114,6 @@ class BatchCrdt with SqfliteCrdtImplMixin implements BatchApi {
     _enqueue((hlc) => _batchExecute(_db, sql, arguments, hlc));
   }
 
-
   // When applying a batch, we increment the HLC's of all statements
   @override
   Future<List<Object?>> apply({bool? noResult, bool? continueOnError}) {
@@ -128,7 +128,9 @@ class BatchCrdt with SqfliteCrdtImplMixin implements BatchApi {
         statement();
       }
     }
-    return _db.apply(noResult: noResult, continueOnError: continueOnError).whenComplete(() async {
+    return _db
+        .apply(noResult: noResult, continueOnError: continueOnError)
+        .whenComplete(() async {
       if (affectedTables.isNotEmpty) {
         await onDatasetChanged(affectedTables, canonicalTime);
       }
@@ -146,9 +148,12 @@ class BatchCrdt with SqfliteCrdtImplMixin implements BatchApi {
         statement();
       }
     }
-    return _db.commit(exclusive: exclusive,
-        noResult: noResult,
-        continueOnError: continueOnError).whenComplete(() {
+    return _db
+        .commit(
+            exclusive: exclusive,
+            noResult: noResult,
+            continueOnError: continueOnError)
+        .whenComplete(() {
       if (affectedTables.isNotEmpty) {
         onDatasetChanged(affectedTables, canonicalTime);
       }
@@ -157,6 +162,5 @@ class BatchCrdt with SqfliteCrdtImplMixin implements BatchApi {
 
   @override //overriding noSuchMethod
   void noSuchMethod(Invocation invocation) =>
-      'Got the ${invocation.memberName} with arguments ${invocation
-          .positionalArguments}';
+      'Got the ${invocation.memberName} with arguments ${invocation.positionalArguments}';
 }

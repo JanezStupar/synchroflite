@@ -38,4 +38,3 @@ class SqliteApi extends DatabaseApi {
     return (_db as Database).transaction((t) => action(SqliteApi(t)));
   }
 }
-

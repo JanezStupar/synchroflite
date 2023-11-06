@@ -23,8 +23,6 @@ export 'package:sqflite_common/sqlite_api.dart';
 export 'package:sql_crdt/sql_crdt.dart';
 export 'package:synchroflite/src/sqflite_api.dart';
 
-
-
 part 'package:synchroflite/src/sqflite_crdt_impl.dart';
 part 'package:synchroflite/src/transaction.dart';
 part 'package:synchroflite/src/batch.dart';
@@ -32,7 +30,7 @@ part 'package:synchroflite/src/batch.dart';
 class Synchroflite extends SqlCrdt with SqfliteCrdtImplMixin {
   final SqfliteApi _db;
 
-  Synchroflite(this._db): super(_db);
+  Synchroflite(this._db) : super(_db);
 
   /// Open or create a SQLite container as a SqlCrdt instance.
   ///
@@ -46,7 +44,8 @@ class Synchroflite extends SqlCrdt with SqfliteCrdtImplMixin {
     FutureOr<void> Function(BaseCrdt crdt, int from, int to)? onUpgrade,
     bool migrate = false,
   }) =>
-      _open(path, false, singleInstance, version, onCreate, onUpgrade, migrate: migrate);
+      _open(path, false, singleInstance, version, onCreate, onUpgrade,
+          migrate: migrate);
 
   /// Open a transient SQLite in memory.
   /// Useful for testing or temporary sessions.
@@ -57,17 +56,17 @@ class Synchroflite extends SqlCrdt with SqfliteCrdtImplMixin {
     FutureOr<void> Function(BaseCrdt crdt, int from, int to)? onUpgrade,
     bool migrate = false,
   }) =>
-      _open(null, true, singleInstance, version, onCreate, onUpgrade, migrate: migrate);
+      _open(null, true, singleInstance, version, onCreate, onUpgrade,
+          migrate: migrate);
 
   static Future<Synchroflite> _open(
-    String? path,
-    bool inMemory,
-    bool singleInstance,
-    int? version,
-    FutureOr<void> Function(BaseCrdt crdt, int version)? onCreate,
-    FutureOr<void> Function(BaseCrdt crdt, int from, int to)? onUpgrade,
-    {bool migrate = false}
-  ) async {
+      String? path,
+      bool inMemory,
+      bool singleInstance,
+      int? version,
+      FutureOr<void> Function(BaseCrdt crdt, int version)? onCreate,
+      FutureOr<void> Function(BaseCrdt crdt, int from, int to)? onUpgrade,
+      {bool migrate = false}) async {
     if (sqliteCrdtIsWeb && !inMemory && path!.contains('/')) {
       path = path.substring(path.lastIndexOf('/') + 1);
     }
@@ -100,7 +99,9 @@ class Synchroflite extends SqlCrdt with SqfliteCrdtImplMixin {
     } on DatabaseException catch (e) {
       // ignore
       final err = e.toString();
-      if (e.getResultCode() == 1 && err.contains('no such column: modified') && migrate) {
+      if (e.getResultCode() == 1 &&
+          err.contains('no such column: modified') &&
+          migrate) {
         await crdt.migrate();
       } else {
         rethrow;
@@ -118,10 +119,14 @@ class Synchroflite extends SqlCrdt with SqfliteCrdtImplMixin {
     // write a query that adds CRDT columns to tables
     final tableStatements = [];
     for (var table in tables) {
-      tableStatements.add('ALTER TABLE $table ADD COLUMN is_deleted INTEGER NOT NULL DEFAULT 0;');
-      tableStatements.add('ALTER TABLE $table ADD COLUMN hlc TEXT NOT NULL DEFAULT \'${canonicalTime.toString()}\';');
-      tableStatements.add('ALTER TABLE $table ADD COLUMN node_id TEXT NOT NULL DEFAULT \'${canonicalTime.nodeId}\';');
-      tableStatements.add('ALTER TABLE $table ADD COLUMN modified TEXT NOT NULL DEFAULT \'${canonicalTime.toString()}\';');
+      tableStatements.add(
+          'ALTER TABLE $table ADD COLUMN is_deleted INTEGER NOT NULL DEFAULT 0;');
+      tableStatements.add(
+          'ALTER TABLE $table ADD COLUMN hlc TEXT NOT NULL DEFAULT \'${canonicalTime.toString()}\';');
+      tableStatements.add(
+          'ALTER TABLE $table ADD COLUMN node_id TEXT NOT NULL DEFAULT \'${canonicalTime.nodeId}\';');
+      tableStatements.add(
+          'ALTER TABLE $table ADD COLUMN modified TEXT NOT NULL DEFAULT \'${canonicalTime.toString()}\';');
     }
 
     // run the query on the database as batch
@@ -136,7 +141,8 @@ class Synchroflite extends SqlCrdt with SqfliteCrdtImplMixin {
     await _db.close();
   }
 
-  Batch batch() => BatchCrdt((_db.batch()), canonicalTime.increment(), onDatasetChanged);
+  Batch batch() =>
+      BatchCrdt((_db.batch()), canonicalTime.increment(), onDatasetChanged);
 
   @override
   Future<void> transaction(
@@ -154,19 +160,25 @@ class Synchroflite extends SqlCrdt with SqfliteCrdtImplMixin {
   }
 
   @override
-  Future<R> _rawInsert<T, R>(T db, InsertStatement statement, List<Object?>? args, [Hlc? hlc]) async {
+  Future<R> _rawInsert<T, R>(
+      T db, InsertStatement statement, List<Object?>? args,
+      [Hlc? hlc]) async {
     await onDatasetChanged([statement.table.tableName], hlc!);
     return super._rawInsert(db, statement, args, hlc);
   }
 
   @override
-  Future<R> _rawUpdate<T, R>(T db, UpdateStatement statement, List<Object?>? args, [Hlc? hlc]) async {
+  Future<R> _rawUpdate<T, R>(
+      T db, UpdateStatement statement, List<Object?>? args,
+      [Hlc? hlc]) async {
     await onDatasetChanged([statement.table.tableName], hlc!);
     return super._rawUpdate(db, statement, args, hlc);
   }
 
   @override
-  Future<R> _rawDelete<T, R>(T db, DeleteStatement statement, List<Object?>? args, [Hlc? hlc]) async {
+  Future<R> _rawDelete<T, R>(
+      T db, DeleteStatement statement, List<Object?>? args,
+      [Hlc? hlc]) async {
     await onDatasetChanged([statement.table.tableName], hlc!);
     return super._rawDelete(db, statement, args, hlc);
   }
@@ -176,7 +188,7 @@ class Synchroflite extends SqlCrdt with SqfliteCrdtImplMixin {
     return _innerRawQuery(_db, sql, args);
   }
 
-  Future<int> rawUpdate(String sql, [List<Object?>? args])  {
+  Future<int> rawUpdate(String sql, [List<Object?>? args]) {
     final hlc = canonicalTime.increment();
     return _innerRawUpdate(_db, sql, args ?? [], hlc);
   }
