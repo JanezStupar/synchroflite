@@ -523,7 +523,7 @@ void main() {
     });
   });
 
-  group('batch watch', () {
+  group('Synchroflite batch watch', () {
     late Synchroflite crdt;
 
     setUp(() async {
@@ -625,6 +625,43 @@ void main() {
       expect(result.first['hlc'], equals(result.last['hlc']));
       expect(result.first['name'], equals('Josepth Doe'));
       await streamTest;
+    });
+  });
+
+  group('Special queries', () {
+    late Synchroflite crdt;
+
+    setUp(() async {
+      crdt = await Synchroflite.openInMemory(
+        version: 1,
+        onCreate: (db, version) async {
+          await db.execute('''
+            CREATE TABLE users (
+              id INTEGER NOT NULL,
+              name TEXT,
+              PRIMARY KEY (id)
+              )
+              ''');
+        },
+      );
+    });
+
+    test('SELECT 1 case', () async {
+      final result = await crdt.query('SELECT 1');
+      expect(result.first['1'], 1);
+    });
+
+    test('PRAGMA queries', () async {
+      final result = await crdt.query('PRAGMA table_info(users)');
+      expect(result.first['name'], 'id');
+    });
+
+    test('sqlite_schema queries', () async {
+      final result = await crdt.query('''
+        SELECT name FROM sqlite_schema
+        WHERE type ='table' AND name NOT LIKE 'sqlite_%'
+      ''');
+      expect(result.first['name'], 'users');
     });
   });
 }

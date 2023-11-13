@@ -7,6 +7,37 @@ const specialQueries = <String>{
   'SELECT 1',
 };
 
+// There are some queries where it doesn't make sense to add CRDT columns
+bool isSpecialQuery(ParseResult result) {
+  // Pragma queries don't need to be intercepted and transformed
+  if (result.sql.toUpperCase().startsWith('PRAGMA')) {
+    return true;
+  }
+
+  //  IF the query is on the lookup table, we don't need to add CRDT columns
+  if (specialQueries.contains(result.sql.toUpperCase())) {
+    return true;
+  }
+  ;
+
+  final statement = result.rootNode;
+  if (statement is SelectStatement) {
+    //     If the query is accessing the schema table, we don't need to add CRDT columns
+    if (statement.from != null) {
+      final table = statement.from as TableReference;
+      if ([
+        'sqlite_schema',
+        'sqlite_master',
+        'sqlite_temp_schema',
+        'sqlite_temp_master'
+      ].contains(table.tableName)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 typedef Executor<T, R> = Future<R> Function(
     T db, String sql, List<Object?>? arguments);
 Object? _convert(Object? value) => (value is Hlc) ? value.toString() : value;
@@ -131,19 +162,10 @@ mixin class SqfliteCrdtImplMixin {
 
   Future<R> _innerRawQuery<T, R>(T db, String sql, [List<Object?>? arguments]) {
     // There are some queries where it doesn't make sense to add CRDT columns
-    final isSpecial = specialQueries.contains(sql.toUpperCase());
-    if (isSpecial) {
-      if (db is SqfliteApi) {
-        return rawQuery(db, sql, arguments) as Future<R>;
-      } else if (db is Batch) {
-        return batchRawQuery(db, sql, arguments) as Future<R>;
-      } else {
-        throw 'Unsupported database type: ${db.runtimeType}';
-      }
-    }
-
     final result = CrdtUtil.parseSql(sql);
-    if (result.rootNode is SelectStatement) {
+    final isSpecial = isSpecialQuery(result);
+
+    if (result.rootNode is SelectStatement && !isSpecial) {
       return queryFunc(db, result.rootNode as SelectStatement, arguments);
     } else {
       if (db is SqfliteApi) {
