@@ -77,41 +77,16 @@ class BatchSynchroflite with SqfliteCrdtImplMixin implements BatchApi {
     _enqueue((hlc) => _innerRawDelete(_db, sql, args, hlc));
   }
 
-  void _createTable(Batch batch, CreateTableStatement statement, args) {
+  @override
+  Future<void> _createTable<T>(T batch, CreateTableStatement statement, args) {
     affectedTables.add(statement.tableName);
-    batch.execute(CrdtUtil.prepareCreate(statement).toSql(), args);
-  }
-
-  void _batchExecute(Batch batch, String sql, List<Object?>? args, [Hlc? hlc]) {
-    final result = CrdtUtil.parseSql(sql);
-
-    // Warn if the query can't be parsed
-    if (result.rootNode is InvalidStatement) {
-      print('Warning: unable to parse SQL statement.');
-      if (sql.contains(';')) {
-        print('The parser can only interpret single statements.');
-      }
-      print(sql);
-    }
-
-    if (result.rootNode is CreateTableStatement) {
-      _createTable(batch, result.rootNode as CreateTableStatement, args);
-    } else if (result.rootNode is InsertStatement) {
-      _innerRawInsert(batch, sql, args, hlc);
-    } else if (result.rootNode is UpdateStatement) {
-      _innerRawUpdate(batch, sql, args, hlc);
-    } else if (result.rootNode is DeleteStatement) {
-      _innerRawDelete(batch, sql, args, hlc);
-    } else {
-      // Run the query unchanged
-      batch.execute(sql, args?.map(_convert).toList());
-    }
+    return super._createTable(batch, statement, args);
   }
 
   @override
   void execute(String sql, [List<Object?>? arguments]) {
     _length++;
-    _enqueue((hlc) => _batchExecute(_db, sql, arguments, hlc));
+    _enqueue((hlc) => _innerExecute(_db, sql, () => hlc, arguments));
   }
 
   // When applying a batch, we increment the HLC's of all statements

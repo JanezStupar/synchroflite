@@ -52,6 +52,11 @@ class TransactionSynchroflite extends TransactionCrdt
     return _innerRawDelete(_txn, sql, args, canonicalTime);
   }
 
+  @override
+  Future<void> execute(String sql, [List<Object?>? args]) async {
+    return _innerExecute(_txn, sql, () => canonicalTime, args);
+  }
+
   Batch batch() =>
       BatchSynchroflite(_txn.batch(), canonicalTime, (tables, hlc) async {
         affectedTables.addAll(tables);

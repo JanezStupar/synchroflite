@@ -163,25 +163,30 @@ class Synchroflite extends SqlCrdt with SqfliteCrdtImplMixin {
   Future<R> _rawInsert<T, R>(
       T db, InsertStatement statement, List<Object?>? args,
       [Hlc? hlc]) async {
+    final result = await super._rawInsert(db, statement, args, hlc) as R;
     await onDatasetChanged([statement.table.tableName], hlc!);
-    return super._rawInsert(db, statement, args, hlc);
+    return result;
   }
 
   @override
   Future<R> _rawUpdate<T, R>(
       T db, UpdateStatement statement, List<Object?>? args,
       [Hlc? hlc]) async {
+    final result = await super._rawUpdate(db, statement, args, hlc) as R;
     await onDatasetChanged([statement.table.tableName], hlc!);
-    return super._rawUpdate(db, statement, args, hlc);
+    return result;
   }
 
   @override
   Future<R> _rawDelete<T, R>(
       T db, DeleteStatement statement, List<Object?>? args,
       [Hlc? hlc]) async {
+    final result = await super._rawDelete(db, statement, args, hlc) as R;
     await onDatasetChanged([statement.table.tableName], hlc!);
-    return super._rawDelete(db, statement, args, hlc);
+    return result;
   }
+
+
 
   Future<List<Map<String, Object?>>> rawQuery(String sql,
       [List<Object?>? args]) {
@@ -201,5 +206,10 @@ class Synchroflite extends SqlCrdt with SqfliteCrdtImplMixin {
   Future<int> rawDelete(String sql, [List<Object?>? args]) {
     final hlc = canonicalTime.increment();
     return _innerRawDelete(_db, sql, args ?? [], hlc);
+  }
+
+  @override
+  Future<void> execute(String sql, [List<Object?>? args]) async {
+    return _innerExecute(_db, sql, () => canonicalTime.increment(), args ?? []);
   }
 }

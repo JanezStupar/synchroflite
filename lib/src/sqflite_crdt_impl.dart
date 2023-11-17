@@ -42,6 +42,8 @@ typedef Executor<T, R> = Future<R> Function(
     T db, String sql, List<Object?>? arguments);
 Object? _convert(Object? value) => (value is Hlc) ? value.toString() : value;
 
+typedef HlcGenerator = Hlc Function();
+
 Future<R> performAction<T, R>(
     T db, String sql, List<Object?>? arguments, Executor<T, R> executor) {
   return executor(db, sql, arguments);
@@ -124,7 +126,7 @@ mixin class SqfliteCrdtImplMixin {
     var newStatement = CrdtUtil.prepareInsert(statement, args);
     args = [...args ?? [], hlc, hlc?.nodeId, hlc];
     if (db is SqfliteApi) {
-      return rawInsert(db, newStatement.toSql(), args) as FutureOr<R>;
+      return rawInsert(db, newStatement.toSql(), args) as Future<R>;
     } else if (db is Batch) {
       return batchRawInsert(db, newStatement.toSql(), args) as Future<R>;
     } else {
@@ -138,7 +140,7 @@ mixin class SqfliteCrdtImplMixin {
     var newStatement = CrdtUtil.prepareUpdate(statement, args);
     args = [...args ?? [], hlc, hlc?.nodeId, hlc];
     if (db is SqfliteApi) {
-      return rawUpdate(db, newStatement.toSql(), args) as FutureOr<R>;
+      return rawUpdate(db, newStatement.toSql(), args) as Future<R>;
     } else if (db is Batch) {
       return batchRawUpdate(db, newStatement.toSql(), args) as Future<R>;
     } else {
@@ -152,7 +154,7 @@ mixin class SqfliteCrdtImplMixin {
     var newStatement = CrdtUtil.prepareDelete(statement, args);
     args = [...args ?? [], 1, hlc, hlc?.nodeId, hlc];
     if (db is SqfliteApi) {
-      return rawUpdate(db, newStatement.toSql(), args) as FutureOr<R>;
+      return rawUpdate(db, newStatement.toSql(), args) as Future<R>;
     } else if (db is Batch) {
       return batchRawUpdate(db, newStatement.toSql(), args) as Future<R>;
     } else {
@@ -200,5 +202,57 @@ mixin class SqfliteCrdtImplMixin {
       [Hlc? hlc]) {
     final result = CrdtUtil.parseSql(sql);
     return _rawDelete(db, result.rootNode as DeleteStatement, arguments, hlc);
+  }
+
+  Future<void> _createTable<T>(T db, CreateTableStatement statement, List<Object?>? columns) async {
+    CrdtUtil.prepareCreate(statement);
+    if (db is SqfliteApi) {
+      return db.execute(statement.toSql(), columns);
+    } else if (db is Batch) {
+      db.execute(statement.toSql(), columns);
+      return Future.value(); // return a void Future
+    } else {
+      throw 'Unsupported database type: ${db.runtimeType}';
+    }
+  }
+
+  Future<void> _innerExecute<T>(T db, String sql, HlcGenerator hlc, List<Object?>? args) async {
+
+    final result = CrdtUtil.parseSql(sql);
+
+    // Warn if the query can't be parsed
+    if (result.rootNode is InvalidStatement) {
+      print('Warning: unable to parse SQL statement.');
+      if (sql.contains(';')) {
+        print('The parser can only interpret single statements.');
+      }
+      print(sql);
+    }
+
+    // Bail on "manual" transaction statements
+    if (result.rootNode is BeginTransactionStatement ||
+        result.rootNode is CommitStatement) {
+      throw 'Unsupported statement: $sql.\nUse SqliteCrdt.transaction() instead.';
+    }
+
+    if (result.rootNode is CreateTableStatement) {
+      await _createTable(db, result.rootNode as CreateTableStatement, args);
+    } else if (result.rootNode is InsertStatement) {
+      await _rawInsert(db, result.rootNode as InsertStatement, args, hlc());
+    } else if (result.rootNode is UpdateStatement) {
+      await _rawUpdate(db, result.rootNode as UpdateStatement, args, hlc());
+    } else if (result.rootNode is DeleteStatement) {
+      await _rawDelete(db, result.rootNode as DeleteStatement, args, hlc());
+    } else {
+      // Run the query unchanged
+      if (db is SqfliteApi) {
+        await db.execute(sql, args?.map(_convert).toList());
+      } else if (db is Batch) {
+        db.execute(sql, args?.map(_convert).toList());
+        return Future.value(); // return a void Future
+      } else {
+        throw 'Unsupported database type: ${db.runtimeType}';
+      }
+    }
   }
 }
