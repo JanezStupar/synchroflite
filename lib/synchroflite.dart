@@ -186,8 +186,6 @@ class Synchroflite extends SqlCrdt with SqfliteCrdtImplMixin {
     return result;
   }
 
-
-
   Future<List<Map<String, Object?>>> rawQuery(String sql,
       [List<Object?>? args]) {
     return _innerRawQuery(_db, sql, args);

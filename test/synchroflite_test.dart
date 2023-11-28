@@ -664,6 +664,205 @@ void main() {
       expect(result.first['name'], 'users');
     });
   });
+
+  /// Note these tests here relate to a functionality that was implemented
+  /// so that the Drift migrations could be used with Synchroflite
+  /// 99.9% of the time it is an incredibly bad idea to fiddle with CRDT columns yourself
+  /// Do not trust yourself to not break the CRDT.
+  /// But just in case you really want to blow your foot off, here is the sawed off shotgun.
+  group('statements with CRDT columns  provided instead of appended at the end',
+      () {
+    late Synchroflite crdt;
+
+    setUp(() async {
+      crdt = await Synchroflite.openInMemory(
+        version: 1,
+        onCreate: (db, version) async {
+          await db.execute('''
+            CREATE TABLE users (
+              id INTEGER NOT NULL,
+              name TEXT,
+              PRIMARY KEY (id)
+              )
+              ''');
+        },
+      );
+    });
+
+    test('create table with CRDT columns specified', () async {
+      await crdt.execute('''
+            CREATE TABLE relations (
+              id INTEGER NOT NULL,
+              user TEXT,
+              hlc TEXT NOT NULL,
+              node_id TEXT NOT NULL,
+              modified TEXT NOT NULL,
+              PRIMARY KEY (id)
+              )
+              ''');
+    });
+
+    test('select with CRDT columns specified', () async {
+      // insert user
+      await crdt.execute('''
+            INSERT INTO users (id, name)
+            VALUES (?1, ?2)
+          ''', [1, 'John Doe']);
+      final result = await crdt.query('''
+            SELECT id, name, hlc, node_id, modified FROM users
+              ''');
+      expect(result.first['name'], equals('John Doe'));
+    });
+
+    test('insert with CRDT columns specified', () async {
+      final hlc = Hlc.now('test_node_id');
+      await crdt.execute('''
+            INSERT INTO users (id, name, hlc, node_id, modified)
+            VALUES (?1, ?2, ?3, ?4, ?5)
+          ''', [1, 'John Doe', hlc.toString(), hlc.nodeId, hlc.toString()]);
+      final result = await crdt.query('''
+            SELECT id, name, hlc, node_id, modified FROM users
+              ''');
+      expect(result.first['name'], equals('John Doe'));
+    });
+
+    test('upsert with CRDT columns specified', () async {
+      var hlc = Hlc.now('test_node_id');
+      await crdt.execute('''
+            INSERT INTO users (id, name, hlc, node_id, modified)
+            VALUES (?1, ?2, ?3, ?4, ?5)
+          ''', [1, 'John Doe', hlc.toString(), hlc.nodeId, hlc.toString()]);
+
+      // upsert
+      hlc.increment();
+      await crdt.execute('''
+            INSERT INTO users (id, name, hlc, node_id, modified)
+              VALUES (?1, ?2, ?3, ?4, ?5)
+              ON CONFLICT (id) DO UPDATE SET 
+                name = excluded.name, 
+                hlc = excluded.hlc, 
+                node_id = excluded.node_id, 
+                modified = excluded.modified
+          ''', [1, 'Jane Doe', hlc.toString(), hlc.nodeId, hlc.toString()]);
+
+      final result = await crdt.query('''
+            SELECT id, name, hlc, node_id, modified FROM users
+              ''');
+      expect(result.first['name'], equals('Jane Doe'));
+    });
+
+    test('update with CRDT columns specified', () async {
+      var hlc = Hlc.now('test_node_id');
+      await crdt.execute('''
+                INSERT INTO users (id, name, hlc, node_id, modified)
+                VALUES (?1, ?2, ?3, ?4, ?5)
+              ''', [1, 'John Doe', hlc.toString(), hlc.nodeId, hlc.toString()]);
+
+      hlc = hlc.increment();
+      await crdt.execute('''
+                UPDATE users SET name = ?2, hlc = ?3, node_id = ?4, modified = ?5
+                WHERE id = ?1
+              ''', [1, 'Jane Doe', hlc.toString(), hlc.nodeId, hlc.toString()]);
+      final result = await crdt.query('''
+                SELECT id, name, hlc, node_id, modified FROM users
+                  ''');
+      expect(result.first['name'], equals('Jane Doe'));
+    });
+
+    test('update with CRDT columns specified and multiple where terms',
+        () async {
+      var hlc = Hlc.now('test_node_id');
+      await crdt.execute('''
+                INSERT INTO users (id, name, hlc, node_id, modified)
+                VALUES (?1, ?2, ?3, ?4, ?5)
+              ''', [1, 'John Doe', hlc.toString(), hlc.nodeId, hlc.toString()]);
+      hlc = hlc.increment();
+      await crdt.execute('''
+                INSERT INTO users (id, name, hlc, node_id, modified)
+                VALUES (?1, ?2, ?3, ?4, ?5)
+              ''',
+          [2, 'James Roe', hlc.toString(), hlc.nodeId, hlc.toString()]);
+      hlc = hlc.increment();
+      await crdt.execute('''
+                UPDATE users SET name = ?2, hlc = ?3, node_id = ?4, modified = ?5
+                WHERE id = ?1 AND name = ?6
+              ''', [
+        1,
+        'Jane Doe',
+        hlc.toString(),
+        hlc.nodeId,
+        hlc.toString(),
+        'John Doe'
+      ]);
+      final result = await crdt.query('''
+                SELECT id, name, hlc, node_id, modified FROM users
+                  ''');
+      expect(result.first['name'], equals('Jane Doe'));
+    });
+  });
+
+  group('Special cases', () {
+    late Synchroflite crdt;
+
+    setUp(() async {
+      crdt = await Synchroflite.openInMemory(
+        version: 1,
+        onCreate: (db, version) async {
+          await db.execute('''
+            CREATE TABLE users (
+              id INTEGER NOT NULL,
+              name TEXT,
+              PRIMARY KEY (id)
+              )
+              ''');
+        },
+      );
+    });
+
+    test('insert select', () async {
+      await crdt.execute('''
+            INSERT INTO users (id, name)
+            VALUES (?1, ?2)
+          ''', [1, 'John Doe']);
+      await crdt.execute('''
+            CREATE TABLE users_tmp_copy (
+              id INTEGER NOT NULL,
+              name TEXT,
+              PRIMARY KEY (id)
+              )
+              ''');
+      await crdt.execute('''
+            INSERT INTO users_tmp_copy (id, name, hlc, node_id, modified)
+            SELECT id, name, hlc, node_id, modified FROM users
+              ''');
+      final result = await crdt.query('''
+          SELECT id, name FROM users_tmp_copy
+            ''');
+      expect(result.first['name'], equals('John Doe'));
+    }, timeout: Timeout(Duration(minutes: 10)));
+
+    test('insert select without CRDT columns', () async {
+      await crdt.execute('''
+            INSERT INTO users (id, name)
+            VALUES (?1, ?2)
+          ''', [1, 'John Doe']);
+      await crdt.execute('''
+            CREATE TABLE users_tmp_copy (
+              id INTEGER NOT NULL,
+              name TEXT,
+              PRIMARY KEY (id)
+              )
+              ''');
+      await crdt.execute('''
+            INSERT INTO users_tmp_copy (id, name, hlc, node_id, modified)
+            SELECT id, name  FROM users
+              ''');
+      final result = await crdt.query('''
+          SELECT id, name FROM users_tmp_copy
+            ''');
+      expect(result.first['name'], equals('John Doe'));
+    });
+  });
 }
 
 Future<void> _insertUser(TimestampedCrdt crdt, int id, String name) =>
