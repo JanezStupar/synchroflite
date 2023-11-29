@@ -108,9 +108,11 @@ class CrdtArgParser {
       }
       if (element is Reference || element is ExpressionResultColumn) {
         var ref;
-        if (element is ExpressionResultColumn && element.expression is Reference) {
+        if (element is ExpressionResultColumn &&
+            element.expression is Reference) {
           ref = element.expression as Reference;
-        } else if (element is ExpressionResultColumn && element.expression is CastExpression) {
+        } else if (element is ExpressionResultColumn &&
+            element.expression is CastExpression) {
           ref = (element.expression as CastExpression).operand as Reference;
         } else {
           ref = element;
