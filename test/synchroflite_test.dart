@@ -863,6 +863,40 @@ void main() {
       expect(result.first['name'], equals('John Doe'));
     });
   });
+
+  group('regressions', () {
+    late Synchroflite crdt;
+
+    setUp(() async {
+      crdt = await Synchroflite.openInMemory(
+        version: 1,
+        onCreate: (db, version) async {
+          await db.execute('''
+            CREATE TABLE users (
+              id INTEGER NOT NULL,
+              name TEXT,
+              PRIMARY KEY (id)
+              )
+              ''');
+        },
+      );
+    });
+
+    test('upsert with duplicate parameters', () async {
+      // insert user
+      await crdt.execute('''
+            INSERT INTO "users" ("id", "name") 
+            VALUES (?, ?) 
+              ON CONFLICT("id") 
+            DO UPDATE 
+              SET "id" = ?, "name" = ?
+          ''', [1, 'John Doe', 1, 'John Doe']);
+      final result = await crdt.query('''
+            SELECT id, name, hlc, node_id, modified FROM users
+              ''');
+      expect(result.first['name'], equals('John Doe'));
+    });
+  });
 }
 
 Future<void> _insertUser(TimestampedCrdt crdt, int id, String name) =>

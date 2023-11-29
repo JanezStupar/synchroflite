@@ -12,15 +12,29 @@ typedef TestFunc<E> = bool Function(E element);
 typedef CreatorFunc<E> = E Function(int listLength);
 typedef NumberedExtractor<E> = int Function(E element);
 
-Iterable<AstNode> filterNodes(Iterable<AstNode> nodes) {
+Iterable<AstNode> filterNodes(Iterable<AstNode> nodes, Type type) {
   final filtered = <String>{};
-  return nodes.whereType<Reference>().where((element) {
-    if (filtered.contains(element.columnName)) {
-      return false;
-    }
-    filtered.add(element.columnName);
-    return true;
-  });
+  if (type == Reference) {
+    return nodes.whereType<Reference>().where((element) {
+      if (filtered.contains(element.columnName)) {
+        return false;
+      }
+      filtered.add(element.columnName);
+      return true;
+    });
+  } else if (type == NumberedVariable) {
+    return nodes.whereType<NumberedVariable>().where((element) {
+      if (filtered.contains(element.explicitIndex.toString())) {
+        return false;
+      }
+      if (element.explicitIndex != null) {
+        filtered.add(element.explicitIndex.toString());
+      }
+      return true;
+    });
+  } else {
+    throw 'Unsupported type';
+  }
 }
 
 class CrdtArgParser {
@@ -28,12 +42,14 @@ class CrdtArgParser {
   final List<Object?> _args;
   final Hlc _hlc;
   final List<AstNode> _nodes;
+  final List<AstNode> _numberedNodes;
 
   /// [args] is the list of arguments
   /// [hlc] is the HLC timestamp
   /// [argumentCount] is the number of named parameters in the statement
   CrdtArgParser(this._args, this._hlc, List<AstNode> nodes)
-      : _nodes = filterNodes(nodes).toList();
+      : _nodes = filterNodes(nodes, Reference).toList(),
+        _numberedNodes = filterNodes(nodes, NumberedVariable).toList();
 
   void init() {
     _argMap.clear();
@@ -60,7 +76,7 @@ class CrdtArgParser {
   List<E> fromIterable<E>(String name, Iterable<E> iterable, TestFunc<E> test,
       CreatorFunc<E> creator) {
     var list = iterable.toList(growable: true);
-    var argumentCount = _nodes.length + _argMap.length + 1;
+    var argumentCount = _numberedNodes.length + _argMap.length + 1;
     var index = extractFromNodes(_nodes, name);
     var indexList = extractFromNodes(list as List<AstNode>, name);
     if (index != -1 && _argMap[name] == null) {
@@ -92,8 +108,10 @@ class CrdtArgParser {
       }
       if (element is Reference || element is ExpressionResultColumn) {
         var ref;
-        if (element is ExpressionResultColumn) {
+        if (element is ExpressionResultColumn && element.expression is Reference) {
           ref = element.expression as Reference;
+        } else if (element is ExpressionResultColumn && element.expression is CastExpression) {
+          ref = (element.expression as CastExpression).operand as Reference;
         } else {
           ref = element;
         }
