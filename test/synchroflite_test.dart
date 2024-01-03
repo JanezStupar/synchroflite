@@ -139,6 +139,13 @@ void main() {
       expect(result.first['name'], 'John Doe');
       expect(result.first['hlc'] as String, hlc.toString());
     });
+
+    /// This is current behavior, but it is not ideal.
+    /// So the client library should handle this case.
+    test('getLastModified for unknown node', () async {
+      final result = await crdt.getLastModified(onlyNodeId: 'unknown_node');
+      expect(result.nodeId, isNot(equals('unknown_node')));
+    });
   });
 
   group('Watch', () {
@@ -895,6 +902,30 @@ void main() {
             SELECT id, name, hlc, node_id, modified FROM users
               ''');
       expect(result.first['name'], equals('John Doe'));
+    });
+
+    test('do not delete previously deleted records', () async {
+      // Previously deleted records should not get modified
+      // when a delete is called with the same criteria
+      // the modified column should not be updated
+      await crdt.execute('''
+            INSERT INTO "users" ("id", "name") 
+            VALUES (?, ?) 
+              ON CONFLICT("id") 
+            DO UPDATE 
+              SET "id" = ?, "name" = ?
+          ''', [1, 'John Doe', 1, 'John Doe']);
+      await crdt.execute('''
+            DELETE FROM "users" 
+            WHERE "id" = ?
+          ''', [1]);
+      final changeset_2 = await crdt.getChangeset();
+      await crdt.execute('''
+            DELETE FROM "users" 
+            WHERE "id" = ?
+          ''', [1]);
+      final changeset_3 = await crdt.getChangeset();
+      expect(changeset_2['users']!.first, equals(changeset_3['users']!.first));
     });
   });
 }

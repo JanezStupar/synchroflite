@@ -3,8 +3,8 @@
 // https://github.com/cachapa/sql_crdt
 // SPDX-License-Identifier: Apache-2.0
 
-import 'package:source_span/source_span.dart';
 import 'package:collection/collection.dart';
+import 'package:source_span/source_span.dart';
 import 'package:sql_crdt/sql_crdt.dart';
 import 'package:sqlparser/sqlparser.dart';
 
@@ -203,6 +203,22 @@ class CrdtUtil {
         _listToBinaryExpression(expressions.sublist(1), token));
   }
 
+  static Expression _skipDeletedWhere(Expression? where) {
+    if (where == null) {
+      return BinaryExpression(
+          Reference(columnName: 'is_deleted'),
+          Token(TokenType.equal, SourceFile.fromString('fakeSpan').span(0)),
+          NumericLiteral(0));
+    }
+    return BinaryExpression(
+        where,
+        Token(TokenType.and, SourceFile.fromString('fakeSpan').span(0)),
+        BinaryExpression(
+            Reference(columnName: 'is_deleted'),
+            Token(TokenType.equal, SourceFile.fromString('fakeSpan').span(0)),
+            NumericLiteral(0)));
+  }
+
   static (UpdateStatement, List<Object?>?) prepareUpdate(
       UpdateStatement statement, List<Object?>? args, hlc) {
     transformAutomaticExplicit(statement);
@@ -312,7 +328,7 @@ class CrdtUtil {
           expression: NumberedVariable(argCount + 4),
         ),
       ],
-      where: statement.where,
+      where: _skipDeletedWhere(statement.where),
     );
 
     final newArgs = [...args ?? [], 1, hlc, hlc.nodeId, hlc];

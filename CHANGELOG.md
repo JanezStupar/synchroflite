@@ -1,3 +1,6 @@
+## 0.1.2
+Records flagged as deleted are not modified again when a delete query targeting them is executed.
+
 ## 0.1.1
 Improve handling of special queries that should not get transformed by CRDT.
 Run Execute through standalone implementation.
