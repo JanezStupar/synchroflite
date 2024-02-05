@@ -1,3 +1,6 @@
+## 0.1.3
+Bump dependencies
+
 ## 0.1.2
 Records flagged as deleted are not modified again when a delete query targeting them is executed.
 

@@ -431,7 +431,7 @@ void main() {
       expect(result.length, 3);
     });
 
-    // When batch.apply is called very operation should have its own timestamp
+    // When batch.apply is ecalled very operation should have its own timestamp
     test('batch apply timestamps', () async {
       final batch = crdt.batch();
       batch.rawInsert('''

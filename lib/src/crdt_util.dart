@@ -118,8 +118,8 @@ class CrdtArgParser {
           ref = element;
         }
         if (ref.columnName == name) {
-          if (ref.parent is SetComponent) {
-            final parent = ref.parent as SetComponent;
+          if (ref.parent is SingleColumnSetComponent) {
+            final parent = ref.parent as SingleColumnSetComponent;
             if (parent.expression is NumberedVariable) {
               final numbered = parent.expression as NumberedVariable;
               if (numbered.explicitIndex != null) {
@@ -230,22 +230,25 @@ class CrdtUtil {
     set = argParser.fromIterable(
         'hlc',
         set,
-        (SetComponent element) => element.column.columnName == 'hlc',
-        (listLength) => SetComponent(
+        <SingleColumnSetComponent>(element) =>
+            element.column.columnName == 'hlc',
+        (listLength) => SingleColumnSetComponent(
             column: Reference(columnName: 'hlc'),
             expression: NumberedVariable(listLength)));
     set = argParser.fromIterable(
         'node_id',
         set,
-        (SetComponent element) => element.column.columnName == 'node_id',
-        (listLength) => SetComponent(
+        <SingleColumnSetComponent>(element) =>
+            element.column.columnName == 'node_id',
+        (listLength) => SingleColumnSetComponent(
             column: Reference(columnName: 'node_id'),
             expression: NumberedVariable(listLength)));
     set = argParser.fromIterable(
         'modified',
         set,
-        (SetComponent element) => element.column.columnName == 'modified',
-        (listLength) => SetComponent(
+        <SingleColumnSetComponent>(element) =>
+            element.column.columnName == 'modified',
+        (listLength) => SingleColumnSetComponent(
             column: Reference(columnName: 'modified'),
             expression: NumberedVariable(listLength)));
 
@@ -311,19 +314,19 @@ class CrdtUtil {
       withClause: statement.withClause,
       table: statement.table,
       set: [
-        SetComponent(
+        SingleColumnSetComponent(
           column: Reference(columnName: 'is_deleted'),
           expression: NumberedVariable(argCount + 1),
         ),
-        SetComponent(
+        SingleColumnSetComponent(
           column: Reference(columnName: 'hlc'),
           expression: NumberedVariable(argCount + 2),
         ),
-        SetComponent(
+        SingleColumnSetComponent(
           column: Reference(columnName: 'node_id'),
           expression: NumberedVariable(argCount + 3),
         ),
-        SetComponent(
+        SingleColumnSetComponent(
           column: Reference(columnName: 'modified'),
           expression: NumberedVariable(argCount + 4),
         ),
@@ -433,22 +436,25 @@ class CrdtUtil {
         action.set = argParser.fromIterable(
             'hlc',
             action.set,
-            (SetComponent element) => element.column.columnName == 'hlc',
-            (listLength) => SetComponent(
+            <SingleColumnSetComponent>(element) =>
+                element.column.columnName == 'hlc',
+            (listLength) => SingleColumnSetComponent(
                 column: Reference(columnName: 'hlc'),
                 expression: NumberedVariable(listLength)));
         action.set = argParser.fromIterable(
             'node_id',
             action.set,
-            (SetComponent element) => element.column.columnName == 'node_id',
-            (listLength) => SetComponent(
+            <SingleColumnSetComponent>(element) =>
+                element.column.columnName == 'node_id',
+            (listLength) => SingleColumnSetComponent(
                 column: Reference(columnName: 'node_id'),
                 expression: NumberedVariable(listLength)));
         action.set = argParser.fromIterable(
             'modified',
             action.set,
-            (SetComponent element) => element.column.columnName == 'modified',
-            (listLength) => SetComponent(
+            <SingleColumnSetComponent>(element) =>
+                element.column.columnName == 'modified',
+            (listLength) => SingleColumnSetComponent(
                 column: Reference(columnName: 'modified'),
                 expression: NumberedVariable(listLength)));
       }
