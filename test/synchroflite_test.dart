@@ -848,6 +848,29 @@ void main() {
       expect(result.first['name'], equals('John Doe'));
     }, timeout: Timeout(Duration(minutes: 10)));
 
+    test('insert select with new column and non ref value', () async {
+      await crdt.execute('''
+            INSERT INTO users (id, name)
+            VALUES (?1, ?2)
+          ''', [1, 'John Doe']);
+      await crdt.execute('''
+            CREATE TABLE users_tmp_copy (
+              id INTEGER NOT NULL,
+              some_column TEXT NOT NULL,
+              name TEXT,
+              PRIMARY KEY (id)
+              )
+              ''');
+      await crdt.execute('''
+            INSERT INTO users_tmp_copy (id, some_column, name, hlc, node_id, modified)
+            SELECT id, '', name, hlc, node_id, modified FROM users
+              ''');
+      final result = await crdt.query('''
+          SELECT id, name FROM users_tmp_copy
+            ''');
+      expect(result.first['name'], equals('John Doe'));
+    }, timeout: Timeout(Duration(minutes: 10)));
+
     test('insert select without CRDT columns', () async {
       await crdt.execute('''
             INSERT INTO users (id, name)
