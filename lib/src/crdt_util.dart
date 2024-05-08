@@ -269,42 +269,86 @@ class CrdtUtil {
     return (newStatement, newArgs);
   }
 
-  static SelectStatement prepareSelect(
-      SelectStatement statement, List<Object?>? args) {
-    transformAutomaticExplicit(statement);
+  static void _prepareSelectSubquery(SelectStatementAsSource subquery) {
+    final innerStatement = subquery.statement;
+    if (innerStatement is SelectStatement) {
+      _prepareSelectStatement(innerStatement);
+    } else if (innerStatement is CompoundSelectStatement) {
+      final base = innerStatement.base;
+      if (base is SelectStatement) {
+        _prepareSelectStatement(base);
+      }
+
+      for (final part in innerStatement.additional) {
+        final select = part.select;
+        if (select is SelectStatement) {
+          _prepareSelectStatement(select);
+        }
+      }
+    }
+  }
+
+  static void _prepareSelectStatement(SelectStatement statement) {
     var fakeSpan = SourceFile.fromString('fakeSpan').span(0);
     var andToken = Token(TokenType.and, fakeSpan);
     var equalToken = Token(TokenType.equal, fakeSpan);
-    var deletedExpr = <Expression>[];
 
-    statement.from?.allDescendants
-        .whereType<TableReference>()
-        .forEachIndexed((index, reference) {
-      if (reference.as != null) {
-        deletedExpr.add(BinaryExpression(
-            Reference(
-                columnName: 'is_deleted',
-                entityName: reference.as,
-                schemaName: reference.schemaName),
-            equalToken,
-            NumericLiteral(0)));
-        print(reference.tableName);
+    var rootTables = <TableReference>[];
+
+    var from = statement.from;
+    if (from is JoinClause) {
+      final primary = from.primary;
+      if (primary is TableReference) {
+        rootTables.add(primary);
+      } else if (primary is SelectStatementAsSource) {
+        _prepareSelectSubquery(primary);
       }
-    });
-    if (deletedExpr.isEmpty) {
-      deletedExpr.add(BinaryExpression(
-          Reference(columnName: 'is_deleted'), equalToken, NumericLiteral(0)));
+
+      for (final join in from.joins) {
+        final query = join.query;
+        if (query is TableReference) {
+          rootTables.add(query);
+        } else if (query is SelectStatementAsSource) {
+          _prepareSelectSubquery(query);
+        }
+      }
+    } else if (from is TableReference) {
+      rootTables.add(from);
+    } else if (from is SelectStatementAsSource) {
+      _prepareSelectSubquery(from);
     }
 
-    if (statement.where != null) {
-      statement.where = BinaryExpression(
+    for (final table in rootTables) {
+      Reference reference;
+      if (table.as != null) {
+        reference = Reference(
+          columnName: 'is_deleted',
+          entityName: table.as,
+          schemaName: table.schemaName,
+        );
+      } else {
+        reference = Reference(columnName: 'is_deleted');
+      }
+
+      print(table.tableName);
+
+      final expression = BinaryExpression(reference, equalToken, NumericLiteral(0));
+      if (statement.where != null) {
+        statement.where = BinaryExpression(
           statement.where!,
-          Token(TokenType.and, fakeSpan),
-          _listToBinaryExpression(deletedExpr, andToken));
-    } else {
-      statement.where = _listToBinaryExpression(deletedExpr, andToken);
+          andToken,
+          expression,
+        );
+      } else {
+        statement.where = expression;
+      }
     }
+  }
 
+  static SelectStatement prepareSelect(
+      SelectStatement statement, List<Object?>? args) {
+    transformAutomaticExplicit(statement);
+    _prepareSelectStatement(statement);
     return statement;
   }
 
