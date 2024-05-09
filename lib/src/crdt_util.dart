@@ -207,19 +207,22 @@ class CrdtUtil {
   }
 
   static Expression _skipDeletedWhere(Expression? where) {
-    if (where == null) {
-      return BinaryExpression(
+    final deletedCheck = Parentheses(BinaryExpression(
+      BinaryExpression(
           Reference(columnName: 'is_deleted'),
           Token(TokenType.equal, SourceFile.fromString('fakeSpan').span(0)),
-          NumericLiteral(0));
+          NumericLiteral(0)),
+      Token(TokenType.or, SourceFile.fromString('fakeSpan').span(0)),
+      IsNullExpression(Reference(columnName: 'is_deleted')),
+    ));
+    if (where == null) {
+      return deletedCheck;
     }
     return BinaryExpression(
-        where,
-        Token(TokenType.and, SourceFile.fromString('fakeSpan').span(0)),
-        BinaryExpression(
-            Reference(columnName: 'is_deleted'),
-            Token(TokenType.equal, SourceFile.fromString('fakeSpan').span(0)),
-            NumericLiteral(0)));
+      where,
+      Token(TokenType.and, SourceFile.fromString('fakeSpan').span(0)),
+      deletedCheck
+    );
   }
 
   static (UpdateStatement, List<Object?>?) prepareUpdate(
@@ -291,6 +294,7 @@ class CrdtUtil {
   static void _prepareSelectStatement(SelectStatement statement) {
     var fakeSpan = SourceFile.fromString('fakeSpan').span(0);
     var andToken = Token(TokenType.and, fakeSpan);
+    var orToken = Token(TokenType.or, fakeSpan);
     var equalToken = Token(TokenType.equal, fakeSpan);
 
     var rootTables = <TableReference>[];
@@ -332,7 +336,11 @@ class CrdtUtil {
 
       print(table.tableName);
 
-      final expression = BinaryExpression(reference, equalToken, NumericLiteral(0));
+      final expression = Parentheses(BinaryExpression(
+        BinaryExpression(reference, equalToken, NumericLiteral(0)),
+        orToken,
+        IsNullExpression(reference),
+      ));
       if (statement.where != null) {
         statement.where = BinaryExpression(
           statement.where!,
