@@ -950,6 +950,28 @@ void main() {
       final changeset_3 = await crdt.getChangeset();
       expect(changeset_2['users']!.first, equals(changeset_3['users']!.first));
     });
+    
+    test('allow sub-queries', () async {
+      await crdt.rawQuery('''
+        SELECT * FROM (SELECT id, name FROM "users");
+      ''');
+    });
+
+    test('allow nullable joins', () async {
+      await crdt.execute('''
+            INSERT INTO "users" ("id", "name") 
+            VALUES (?, ?) 
+              ON CONFLICT("id") 
+            DO UPDATE 
+              SET "id" = ?, "name" = ?
+          ''', [1, 'John Doe', 1, 'John Doe']);
+
+      final result = await crdt.rawQuery('''
+        SELECT u1.* FROM "users" u1
+        LEFT JOIN "users" u2 ON u2.id IS NULL
+      ''');
+      expect(result.first['name'], equals('John Doe'));
+    });
   });
 }
 
